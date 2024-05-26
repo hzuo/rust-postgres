@@ -1292,6 +1292,8 @@ where
     }
 }
 
+/// An explicit way to pass or read an OID.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub struct ExplicitOid(pub u32);
 
 impl<'a> FromSql<'a> for ExplicitOid {
@@ -1305,7 +1307,8 @@ impl<'a> FromSql<'a> for ExplicitOid {
 
 impl ToSql for ExplicitOid {
     fn to_sql(&self, _: &Type, w: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
-        types::oid_to_sql(*self, w);
+        let value = self.0;
+        types::oid_to_sql(value, w);
         Ok(IsNull::No)
     }
 

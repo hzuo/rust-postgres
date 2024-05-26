@@ -159,6 +159,11 @@ async fn get_type(client: &Arc<InnerClient>, oid: Oid) -> Result<Type, Error> {
     let schema: String = row.try_get(5)?;
     let relid: ExplicitOid = row.try_get(6)?;
 
+    let elem_oid: Oid = elem_oid.0;
+    let rngsubtype: Option<u32> = rngsubtype.map(|oid| oid.0);
+    let basetype: u32 = basetype.0;
+    let relid: u32 = relid.0;
+
     let kind = if type_ == b'e' as i8 {
         let variants = get_enum_variants(client, oid).await?;
         Kind::Enum(variants)
@@ -248,7 +253,8 @@ async fn get_composite_fields(client: &Arc<InnerClient>, oid: Oid) -> Result<Vec
     let mut fields = vec![];
     for row in rows {
         let name = row.try_get(0)?;
-        let oid = row.try_get(1)?;
+        let oid: ExplicitOid = row.try_get(1)?;
+        let oid: Oid = oid.0;
         let type_ = get_type_rec(client, oid).await?;
         fields.push(Field::new(name, type_));
     }
