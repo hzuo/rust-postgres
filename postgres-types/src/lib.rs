@@ -1291,3 +1291,25 @@ where
         self
     }
 }
+
+pub struct ExplicitOid(pub u32);
+
+impl<'a> FromSql<'a> for ExplicitOid {
+    fn from_sql(_: &Type, raw: &'a [u8]) -> Result<ExplicitOid, Box<dyn Error + Sync + Send>> {
+        let value = types::oid_from_sql(raw)?;
+        Ok(Self(value))
+    }
+
+    accepts!(OID);
+}
+
+impl ToSql for ExplicitOid {
+    fn to_sql(&self, _: &Type, w: &mut BytesMut) -> Result<IsNull, Box<dyn Error + Sync + Send>> {
+        types::oid_to_sql(*self, w);
+        Ok(IsNull::No)
+    }
+
+    accepts!(OID);
+
+    to_sql_checked!();
+}

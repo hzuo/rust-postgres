@@ -11,6 +11,7 @@ use futures_util::{pin_mut, TryStreamExt};
 use log::debug;
 use postgres_protocol::message::backend::Message;
 use postgres_protocol::message::frontend;
+use postgres_types::ExplicitOid;
 use std::future::Future;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicUsize, Ordering};
@@ -142,7 +143,7 @@ async fn get_type(client: &Arc<InnerClient>, oid: Oid) -> Result<Type, Error> {
 
     let stmt = typeinfo_statement(client).await?;
 
-    let rows = query::query(client, stmt, slice_iter(&[&oid])).await?;
+    let rows = query::query(client, stmt, slice_iter(&[&ExplicitOid(oid)])).await?;
     pin_mut!(rows);
 
     let row = match rows.try_next().await? {
@@ -152,11 +153,11 @@ async fn get_type(client: &Arc<InnerClient>, oid: Oid) -> Result<Type, Error> {
 
     let name: String = row.try_get(0)?;
     let type_: i8 = row.try_get(1)?;
-    let elem_oid: Oid = row.try_get(2)?;
-    let rngsubtype: Option<Oid> = row.try_get(3)?;
-    let basetype: Oid = row.try_get(4)?;
+    let elem_oid: ExplicitOid = row.try_get(2)?;
+    let rngsubtype: Option<ExplicitOid> = row.try_get(3)?;
+    let basetype: ExplicitOid = row.try_get(4)?;
     let schema: String = row.try_get(5)?;
-    let relid: Oid = row.try_get(6)?;
+    let relid: ExplicitOid = row.try_get(6)?;
 
     let kind = if type_ == b'e' as i8 {
         let variants = get_enum_variants(client, oid).await?;
@@ -212,7 +213,7 @@ async fn typeinfo_statement(client: &Arc<InnerClient>) -> Result<Statement, Erro
 async fn get_enum_variants(client: &Arc<InnerClient>, oid: Oid) -> Result<Vec<String>, Error> {
     let stmt = typeinfo_enum_statement(client).await?;
 
-    query::query(client, stmt, slice_iter(&[&oid]))
+    query::query(client, stmt, slice_iter(&[&ExplicitOid(oid)]))
         .await?
         .and_then(|row| async move { row.try_get(0) })
         .try_collect()
@@ -239,7 +240,7 @@ async fn typeinfo_enum_statement(client: &Arc<InnerClient>) -> Result<Statement,
 async fn get_composite_fields(client: &Arc<InnerClient>, oid: Oid) -> Result<Vec<Field>, Error> {
     let stmt = typeinfo_composite_statement(client).await?;
 
-    let rows = query::query(client, stmt, slice_iter(&[&oid]))
+    let rows = query::query(client, stmt, slice_iter(&[&ExplicitOid(oid)]))
         .await?
         .try_collect::<Vec<_>>()
         .await?;
